@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Pho Co. Admin | Inquiries</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: #f6f1ea; color: #221d1c; }
+    header { background: #141111; color: #fff; padding: 16px 5%; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { margin: 0; font-size: 1.2rem; }
+    header h1 span { color: #e2231a; }
+    header button { background: transparent; color: #fff; border: 1px solid #555; padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+    main { padding: 24px 5%; }
+    .stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    .stat { background: #fff; padding: 14px 18px; border-radius: 12px; min-width: 120px; }
+    .stat b { display: block; font-size: 1.6rem; color: #e2231a; }
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filters button { border: 1.5px solid #ccc; background: #fff; padding: 6px 14px; border-radius: 999px; cursor: pointer; font-weight: 600; }
+    .filters button.on { background: #e2231a; border-color: #e2231a; color: #fff; }
+    .card { background: #fff; border-radius: 14px; padding: 18px 20px; margin-bottom: 12px; box-shadow: 0 6px 18px -12px rgba(0,0,0,.3); }
+    .top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .name { font-weight: 700; font-size: 1.1rem; }
+    .meta { color: #6d6461; font-size: .9rem; margin: 6px 0; }
+    .meta a { color: #e2231a; font-weight: 600; }
+    .msg { white-space: pre-wrap; background: #faf6f1; padding: 10px 12px; border-radius: 8px; margin: 8px 0 0; }
+    .actions { display: flex; gap: 8px; align-items: center; }
+    select { padding: 6px 8px; border-radius: 8px; border: 1.5px solid #ccc; font-weight: 600; }
+    .del { background: #fff; border: 1.5px solid #e2231a; color: #e2231a; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+    .tag { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .78rem; font-weight: 700; text-transform: uppercase; background: #eee; }
+    .tag.new { background: #e2231a; color: #fff; }
+    .empty { text-align: center; color: #888; padding: 40px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span>Pho Co.</span> Inquiries</h1>
+    <button id="logout">Sign out</button>
+  </header>
+  <main>
+    <div class="stats" id="stats"></div>
+    <div class="filters" id="filters"></div>
+    <div id="list"></div>
+  </main>
+  <script>
+    const STATUSES = ['new', 'contacted', 'booked', 'closed'];
+    let rows = [];
+    let filter = 'all';
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    async function api(url, opts) {
+      const r = await fetch(url, opts);
+      if (r.status === 401) { location.href = '/admin/login'; throw new Error('signed out'); }
+      return r.json();
+    }
+
+    async function load() {
+      rows = await api('/admin/api/inquiries');
+      render();
+    }
+
+    function render() {
+      const counts = Object.fromEntries(STATUSES.map((s) => [s, rows.filter((r) => r.status === s).length]));
+      document.getElementById('stats').innerHTML =
+        `<div class="stat"><b>${rows.length}</b>Total</div>` +
+        STATUSES.map((s) => `<div class="stat"><b>${counts[s]}</b>${s}</div>`).join('');
+      document.getElementById('filters').innerHTML = ['all', ...STATUSES]
+        .map((s) => `<button data-f="${s}" class="${filter === s ? 'on' : ''}">${s}</button>`).join('');
+      const shown = filter === 'all' ? rows : rows.filter((r) => r.status === filter);
+      document.getElementById('list').innerHTML = shown.length ? shown.map((r) => `
+        <div class="card">
+          <div class="top">
+            <div><span class="name">${esc(r.name)}</span> <span class="tag ${r.status}">${esc(r.status)}</span></div>
+            <div class="actions">
+              <select data-id="${r.id}">${STATUSES.map((s) => `<option ${s === r.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
+              <button class="del" data-del="${r.id}">Delete</button>
+            </div>
+          </div>
+          <div class="meta">
+            <a href="tel:${esc(r.phone)}">${esc(r.phone)}</a>
+            ${r.email ? ` · <a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : ''}
+            · ${esc(r.inquiry_type)}
+            ${r.event_date ? ` · Date: ${esc(r.event_date)}` : ''}
+            ${r.guest_count ? ` · Guests: ${esc(r.guest_count)}` : ''}
+            · Received ${esc(new Date(r.created_at + 'Z').toLocaleString())}
+          </div>
+          ${r.message ? `<p class="msg">${esc(r.message)}</p>` : ''}
+        </div>`).join('') : '<p class="empty">No inquiries here yet.</p>';
+    }
+
+    document.addEventListener('click', async (e) => {
+      const f = e.target.dataset.f;
+      if (f) { filter = f; render(); }
+      const del = e.target.dataset.del;
+      if (del && confirm('Delete this inquiry? This cannot be undone.')) {
+        await api('/admin/api/inquiries/' + del, { method: 'DELETE' });
+        load();
+      }
+    });
+    document.addEventListener('change', async (e) => {
+      const id = e.target.dataset.id;
+      if (!id) return;
+      await api('/admin/api/inquiries/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: e.target.value }) });
+      load();
+    });
+    document.getElementById('logout').addEventListener('click', async () => {
+      await fetch('/admin/logout', { method: 'POST' });
+      location.href = '/admin/login';
+    });
+    load();
+  </script>
+</body>
+</html>
