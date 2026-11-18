@@ -32,22 +32,12 @@ ADMIN_PASSWORD=choose-one npm start
 | `SMTP_HOST` / `SMTP_PORT` | Optional. Default `smtp.gmail.com` / `465`. |
 | `DATA_DIR` | Optional. Where the SQLite file lives. |
 
-## Photos to add (`public/images/`)
+## Photos (`public/images/`)
 
-The site shows a broth-colored stand-in wherever a photo is missing, so it looks finished before photos are added. Drop these files in and they appear automatically:
-
-| File | Where it shows |
-| --- | --- |
-| `logo.png` | Header, big hero logo, footer, favicon, and social-share image. Use a square PNG, ideally with a transparent background. |
-| `hero.jpg` | Full-width hero background. A wide shot of pho or the counter. |
-| `pho.jpg` | House favorites: Pho Bo card |
-| `banh-mi.jpg` | House favorites: Banh Mi card |
-| `bubble-tea.jpg` | House favorites: Bubble Tea card |
-| `about.jpg` | Our Story section. The storefront or dining room. |
+All slots are filled with the restaurant's own photos from their Facebook page: `logo.png`, `hero.jpg`, `pho.jpg`, `banh-mi.jpg`, `bubble-tea.jpg`, `about.jpg` (storefront), plus 16 square shots in `gallery/`. To swap one, replace the file with the same name. To add a gallery photo, drop an 800x800 JPG in `gallery/` and copy one `<figure>` line in the gallery section of `index.html`.
 
 ## Before launch
 
-- [ ] Add the photos above (logo first: until `logo.png` is added, the site shows a "PHO CO" stand-in badge)
 - [ ] Confirm hours. Facebook lists Tue–Sat 10am–7pm, but that listing was last updated about 3 years ago.
 - [ ] Set `ADMIN_PASSWORD`, `NOTIFY_EMAIL` and the SMTP variables in Render
 - [ ] Once the domain is live, change the `og:image` / `twitter:image` tags in `index.html` to the full URL (e.g. `https://theirdomain.com/images/logo.png`) so Facebook and text previews pick up the logo
